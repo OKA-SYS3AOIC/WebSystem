@@ -49,7 +49,7 @@ $mysqli->close();
 </head>
 <body>
 
-<form action="room.php" method="post">
+<form action="room.php" method="POST">
 <table border="0">
   <tr>
   <tr>
@@ -100,5 +100,7 @@ include 'roomtable.php';
 }
 
 ?>
+
+
 </body>
 </html>
