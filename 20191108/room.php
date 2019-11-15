@@ -1,44 +1,16 @@
 ﻿
 <?php
+session_start();
 
-//データベース接続
-$server = "localhost";
-$userName = "root";
-$password = "";
-$dbName = "testtable";
+$db = new PDO("mysql:dbname=testtable;host=localhost;charset=utf8", "root", "");
 
-$mysqli = new mysqli($server, $userName, $password,$dbName);
 
-if ($mysqli->connect_error){
-    echo $mysqli->connect_error;
-    exit();
-}else{
-    $mysqli->set_charset("UTF8");
-}
 
-$sql = "SELECT * FROM m_classroomform;";
+$selectsqls =$db->prepare("SELECT * FROM m_classroomform;");
 
-$result = $mysqli -> query($sql);
 
-//クエリー失敗
-if(!$result) {
-    echo $mysqli->error;
-    exit();
-}
-
-//レコード件数
-$row_count = $result->num_rows;
-
-//連想配列で取得
-while($row = $result->fetch_array(MYSQLI_ASSOC)){
-    $rows[] = $row;
-}
-
-//結果セットを解放
-$result->free();
-
-// データベース切断
-$mysqli->close();
+$selectsqls->execute();
+$selectsqls = $selectsqls->fetchAll(PDO::FETCH_ASSOC);
 
 ?>
 <!DOCTYPE html>
@@ -56,11 +28,11 @@ $mysqli->close();
     <td><input type="radio" name="radio" value="selecttype" checked="checked">教室タイプから探す
     <select name="roomtype">
 <?php
-foreach($rows as $row){
+foreach($selectsqls as $selectsql){
 
 ?>
 
-	<option value="<?php echo $row['m_classroomform_name'];?>"><?php echo $row['m_classroomform_name']; ?></option>
+	<option value="<?php echo $selectsql['m_classroomform_name'];?>"><?php echo $selectsql['m_classroomform_name']; ?></option>
 <?php
 }
 ?>
@@ -93,14 +65,103 @@ foreach($rows as $row){
 </table>
 </form>
 <?php
-if(isset($_POST['send']))
-{
 
-include 'roomtable.php';
+
+if(isset($_POST['send'])||isset($_GET['page']))
+{
+if(isset($_POST['roomtype'])){
+	$_SESSION['roomtype'] = $_POST['roomtype'];
+}
+if(isset($_POST['floor'])){
+	$_SESSION['floor'] = $_POST['floor'];
+}
+if(isset($_POST['radio'])){
+	$_SESSION['radio'] = $_POST['radio'];
 }
 
+
+echo $_SESSION['roomtype'];
+
+
+	// PDOでDBに接続
+
+
+	// GETで現在のページ数を取得する（未入力の場合は1を挿入）
+	if (isset($_GET['page'])) {
+	$page = (int)$_GET['page'];
+	} else {
+	$page = 1;
+	}
+
+	// スタートのポジションを計算する
+	if ($page > 1) {
+	// 例：２ページ目の場合は、『(2 × 3) - 3 = 3』
+		$start = ($page * 3) - 3;
+		} else {
+		$start = 0;
+	}
+$int="";
+	// postsテーブルから3件のデータを取得する
+if(strcmp($_SESSION['radio'], "selecttype")==0){
+	$posts = $db->prepare("SELECT  m_classroom.m_classroom_id,m_classroomform.m_classroomform_name FROM  m_classroom LEFT JOIN m_classroomform ON m_classroom.m_classroomform_id = m_classroomform.m_classroomform_id WHERE m_classroomform.m_classroomform_name=\"".$_SESSION['roomtype']."\" LIMIT ".$start.", 3");
+	$int=0;
+}else{
+	$posts =$db->prepare("SELECT m_classroom.m_classroom_id, m_classroomform.m_classroomform_name FROM m_classroom LEFT JOIN m_classroomform ON m_classroom.m_classroomform_id = m_classroomform.m_classroomform_id where m_classroom.m_classroom_id LIKE\"".$_SESSION['floor']."%\" LIMIT {$start}, 3");
+	$int=1;	
+}
+	$posts->execute();
+	$posts = $posts->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+if($int==0){
+	$page_num = $db->prepare("SELECT count(*) FROM  m_classroom LEFT JOIN m_classroomform ON m_classroom.m_classroomform_id = m_classroomform.m_classroomform_id WHERE m_classroomform.m_classroomform_name=\"".$_SESSION['roomtype']."\"");
+}else{
+	$page_num = $db->prepare("SELECT count(*) FROM m_classroom LEFT JOIN m_classroomform ON m_classroom.m_classroomform_id = m_classroomform.m_classroomform_id where m_classroom.m_classroom_id LIKE\"".$_SESSION['floor']."%\"");
+
+}
+
+	$page_num->execute();
+	$page_num = $page_num->fetchColumn();
 ?>
 
 
+
+<h1>出力結果</h1>
+
+
+総レコード件数：<?php echo $page_num; ?><br>
+<table border='1'>
+<tr>
+<th>教室</th>
+<th>教室タイプ</th>
+</tr>
+<?php
+	foreach ($posts as $post) {
+?>
+	<tr>
+    		<td><?php echo $post['m_classroom_id']; ?></td>
+    		<td><select name="roomtype">
+		<option value="1" selected><?php echo $post['m_classroomform_name']; ?></option>
+		<option value="2">通常</option>
+		<option value="3">PC可</option>
+		<option value="4">その他</option>
+		</select>
+    	</td>
+	</tr>
+<?php	
+	}
+?>
+<?php
+
+	
+	// ページネーションの数を取得する
+	$pagination = ceil($page_num / 3);
+
+	 for ($x=1; $x <= $pagination ; $x++) { 
+	echo'<a href="?page='. $x .'">'; echo $x; echo"</a>";
+ 						}
+}
+?>
 </body>
 </html>
