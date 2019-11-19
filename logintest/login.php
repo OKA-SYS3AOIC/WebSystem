@@ -27,7 +27,7 @@ $db = new PDO("mysql:dbname=testtable;host=localhost;charset=utf8", "root", "");
 
 
 
-$selectsqls =$db->prepare("SELECT * FROM m_employee WHERE m_employee_mailaddress=\"".$_SESSION['mail']."\" and m_employee_password=\"".$_SESSION['pass']."\"");
+$selectsqls =$db->prepare("SELECT * FROM m_employee LEFT JOIN m_employeeclassification ON m_employee.m_employeeclassification_id = m_employeeclassification.m_employeeclassification_id WHERE m_employee.m_employee_mailaddress=\"".$_SESSION['mail']."\" and m_employee.m_employee_password=\"".$_SESSION['pass']."\"");
 
 $selectsqls->execute();
 
@@ -45,9 +45,13 @@ $db=null;
      exit;
 }
 if($row_count>0){
+//ログイン者の名前、分類をセッションに記録
 $_SESSION['name'] = $result['m_employee_name'];
+$_SESSION['classification'] = $result['m_employeeclassification_name'];
+//indexへ遷移
 header('Location: index.php');
 }
+//メアドかパスが間違っていたら
 else{
 echo "メールアドレスまたはパスワードが間違っています。";
 }
