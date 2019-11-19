@@ -1,3 +1,6 @@
+<?php
+session_start();
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -5,7 +8,14 @@
 <title>テーブルサンプル</title>
 </head>
 <body>
-
+<?php
+//ログインセッションを確認したら容赦なくindexへ
+if(isset($_SESSION['name'])==null){
+echo  "ログインしていません。";
+}else if(isset($_SESSION['name'])!=NULL){
+header('Location: index.php');
+}
+?>
 <form action="login.php" method="POST">
 	<p>メールアドレス： <input type="text" name="mail"></p>
 	<p>パスワード： <input type="password" name="pass"></p>
@@ -16,7 +26,6 @@
 //sendを取ったら(ボタンを押したら)作動
 if(isset($_POST['send']))
 {
-session_start();
 
 $_SESSION['mail'] = $_POST['mail'];
 
