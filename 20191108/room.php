@@ -4,6 +4,7 @@
 	$selectsqls =$db->prepare("SELECT * FROM m_classroomform;");
 	$selectsqls->execute();
 	$selectsqls = $selectsqls->fetchAll(PDO::FETCH_ASSOC);
+	$roomformcount = count($selectsqls);
 ?>
 <!DOCTYPE html>
 <html>
@@ -15,6 +16,9 @@
 <form action="room.php" method="POST">
 <table border="0">
 	<tr>
+		<tr>
+		<td><input type="submit" name="newrec" value="新規登録"></td>
+		</tr>
 		<tr>
 			<td><input type="radio" name="radio" value="selecttype" checked="checked">教室タイプから探す
 			<select name="roomtype">
@@ -62,6 +66,43 @@
 </form>
 <form action="room.php" method="POST">
 <?php
+//新規登録の処理
+	if(isset($_POST['newrec']))
+	{
+echo '<input type="radio" name="newsel" value="newclass" checked="checked">新規クラス作成<br>';
+echo'クラス名<input type="text" name="newclass" value="">例)1A、9D1<br>';
+echo '教室タイプ<select name="newroomtype">';
+foreach($selectsqls as $selectsql){
+	echo '<option value="';echo $selectsql['m_classroomform_name']; echo'">';echo $selectsql['m_classroomform_name'];echo"</option>";
+	}
+echo"</select><br>";
+echo '<input type="radio" name="newsel" value="newtype">新規教室タイプ作成<br>';
+echo'クラスタイプ名<input type="text" name="newclasstype" value=""><br>';
+echo'<input type="submit" name="newrecsend" value="新規登録">';
+}
+if(isset($_POST['newrecsend']))
+{
+$INS="";
+if(strcmp($_POST['newsel'], "selecttype")==0){
+	$SELS=$db->prepare("SELECT m_classroomform_id FROM m_classroomform WHERE m_classroomform_name=\"".$_POST['newroomtype']."\"");
+	$SELS->execute();
+	$SELS=$SELS->fetchAll(PDO::FETCH_ASSOC);
+	foreach ($SELS as $SEL) {
+	$INS=$db->prepare("INSERT INTO m_classroom (m_classroom_id,m_classroom_qrdate,m_classroomform_id) VALUES (\"".$_POST['newclass']."\",\"qr\",\"".$SEL['m_classroomform_id']."\")");
+						}
+}else{
+$roomformcount++;
+if($roomformcount<10){
+$INS=$db->prepare("INSERT INTO m_classroomform(m_classroomform_id,m_classroomform_name)values(\"RF0".$roomformcount."\",\"".$_POST['newclasstype']."\")");
+}else{
+$INS=$db->prepare("INSERT INTO m_classroomform(m_classroomform_id,m_classroomform_name)values(\"RF".$roomformcount."\",\"".$_POST['newclasstype']."\")");
+}
+}
+	$INS->execute();
+	echo"正常終了";
+header('Location: room.php');
+	}
+//検索結果表示処理
 	if(isset($_POST['send'])||isset($_GET['page']))
 	{
 		if(isset($_POST['roomtype'])){
@@ -159,8 +200,6 @@ $cnt=0;
 	if(isset($_POST['UPD'])){
 if($_SESSION['num']<$_SESSION['count']){
 for($f=1; $f<=$_SESSION['num']; $f++){
-		echo $_POST['roomadd'.$f];
-		echo $_POST['classroomid'.$f];
 		$UPD = $db->prepare("UPDATE m_classroom SET m_classroomform_id = (SELECT m_classroomform_id FROM m_classroomform WHERE m_classroomform_name=\"".$_POST['roomadd'.$f]."\")WHERE m_classroom_id=\"".$_POST['classroomid'.$f]."\"");	
 		$UPD -> execute();
 }
