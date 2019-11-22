@@ -60,7 +60,7 @@
 	</tr>
 </table>
 </form>
-<form action="roomtableadd.php" method="POST">
+<form action="room.php" method="POST">
 <?php
 	if(isset($_POST['send'])||isset($_GET['page']))
 	{
@@ -89,7 +89,7 @@
 			$start = 0;
 		}
 		$int="";
-		// postsテーブルから3件のデータを取得する
+		// postsテーブルからデータを取得する
 		if(strcmp($_SESSION['radio'], "selecttype")==0){
 			$posts = $db->prepare("SELECT  m_classroom.m_classroom_id,m_classroomform.m_classroomform_name FROM  m_classroom LEFT JOIN m_classroomform ON m_classroom.m_classroomform_id = m_classroomform.m_classroomform_id WHERE m_classroomform.m_classroomform_name=\"".$_SESSION['roomtype']."\" LIMIT ".$start.", ".$_SESSION['count']."");
 			$int=0;
@@ -106,9 +106,10 @@
 		}
 		$page_num->execute();
 		$page_num = $page_num->fetchColumn();
+		$_SESSION['num']=$page_num;
 ?>
 <h1>出力結果</h1>
-総レコード件数：<?php echo $page_num; ?><br>
+総レコード件数：<?php echo $_SESSION['num']; ?><br>
 <table border='1'>
 <tr>
 	<th>教室</th>
@@ -120,7 +121,9 @@ $cnt=0;
 		$cnt=$cnt+1;
 ?>
 <tr>
-	<td name="roomid<?php echo $cnt;?>"><?php echo $post['m_classroom_id']; ?></td>
+
+	<td><?php echo $post['m_classroom_id']; ?></td>
+	<input type="hidden" name="classroomid<?php echo $cnt;?>" value="<?php echo $post['m_classroom_id']; ?>">
 	<td><select name="roomadd<?php echo $cnt;?>">
 		<option value="<?php echo $post['m_classroomform_name'];?>" selected><?php echo $post['m_classroomform_name']; ?></option>
 <?php
@@ -152,8 +155,23 @@ $cnt=0;
 	}
 		echo '<br><input type="submit" name="UPD" value="保存"><input type="reset" value="リセット">';
 	}
+//データ更新処理
 	if(isset($_POST['UPD'])){
-		$UPD = $db->prepare("UPDATE m_classroom SET m_classroomform_id = (SELECT m_classroomform_id FROM m_classroomform WHERE m_classroomform_name=\"".$_POST['roomadd$cnt']."\")WHERE m_classroom_id=\"".$_POST['']."\"");	
+if($_SESSION['num']<$_SESSION['count']){
+for($f=1; $f<=$_SESSION['num']; $f++){
+		echo $_POST['roomadd'.$f];
+		echo $_POST['classroomid'.$f];
+		$UPD = $db->prepare("UPDATE m_classroom SET m_classroomform_id = (SELECT m_classroomform_id FROM m_classroomform WHERE m_classroomform_name=\"".$_POST['roomadd'.$f]."\")WHERE m_classroom_id=\"".$_POST['classroomid'.$f]."\"");	
+		$UPD -> execute();
+}
+}else
+{
+for($fe=1; $fe<=$_SESSION['count']; $fe++){
+		$UPD = $db->prepare("UPDATE m_classroom SET m_classroomform_id = (SELECT m_classroomform_id FROM m_classroomform WHERE m_classroomform_name=\"".$_POST['roomadd'.$fe]."\")WHERE m_classroom_id=\"".$_POST['classroomid'.$fe]."\"");	
+		$UPD -> execute();
+}
+}
+//header('Location: room.php');
 }
 ?>
 </form>

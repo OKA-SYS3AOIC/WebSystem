@@ -1,4 +1,0 @@
-oracleじゃなくてmysqlで動きます
-自分のmysqlに添付してるtesttabel.sqlファイルをインポートしてね！
-教室マスタのデータベースを添付してます
-apacheとPHPが無いと動かないよ！
