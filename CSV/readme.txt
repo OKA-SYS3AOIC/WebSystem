@@ -1,0 +1,1 @@
+csvtest.phpとdataフォルダをhtdocsに配置して使用してください
