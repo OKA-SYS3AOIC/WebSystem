@@ -83,13 +83,13 @@ echo'<input type="submit" name="newrecsend" value="新規登録">';
 if(isset($_POST['newrecsend']))
 {
 $INS="";
-if(strcmp($_POST['newsel'], "selecttype")==0){
+if(strcmp($_POST['newsel'], "newclass")==0){
 	$SELS=$db->prepare("SELECT m_classroomform_id FROM m_classroomform WHERE m_classroomform_name=\"".$_POST['newroomtype']."\"");
 	$SELS->execute();
 	$SELS=$SELS->fetchAll(PDO::FETCH_ASSOC);
 	foreach ($SELS as $SEL) {
 	$INS=$db->prepare("INSERT INTO m_classroom (m_classroom_id,m_classroom_qrdate,m_classroomform_id) VALUES (\"".$_POST['newclass']."\",\"qr\",\"".$SEL['m_classroomform_id']."\")");
-						}
+				}
 }else{
 $roomformcount++;
 if($roomformcount<10){
