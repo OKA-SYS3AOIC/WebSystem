@@ -30,13 +30,13 @@ if(isset($_POST['send']))
 $_SESSION['mail'] = $_POST['mail'];
 
 $_SESSION['pass'] = $_POST['pass'];
-
+$passhash=hash_hmac('sha256', $_SESSION['pass'], false);
 try{
 $db = new PDO("mysql:dbname=testtable;host=localhost;charset=utf8", "root", "");
 
 
 
-$selectsqls =$db->prepare("SELECT * FROM m_employee LEFT JOIN m_employeeclassification ON m_employee.m_employeeclassification_id = m_employeeclassification.m_employeeclassification_id WHERE m_employee.m_employee_mailaddress=\"".$_SESSION['mail']."\" and m_employee.m_employee_password=\"".$_SESSION['pass']."\"");
+$selectsqls =$db->prepare("SELECT * FROM m_employee LEFT JOIN m_employeeclassification ON m_employee.m_employeeclassification_id = m_employeeclassification.m_employeeclassification_id WHERE m_employee.m_employee_mailaddress=\"".$_SESSION['mail']."\" and m_employee.m_employee_password=\"".$passhash."\"");
 
 $selectsqls->execute();
 
@@ -55,6 +55,7 @@ $db=null;
 }
 if($row_count>0){
 //ログイン者の名前、分類をセッションに記録
+$_SESSION['id'] = $result['m_employee_id'];
 $_SESSION['name'] = $result['m_employee_name'];
 $_SESSION['classification'] = $result['m_employeeclassification_name'];
 //indexへ遷移
