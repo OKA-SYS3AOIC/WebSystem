@@ -1,6 +1,7 @@
 ﻿<?php
 	session_start();
 	$db = new PDO("mysql:dbname=testtable;host=localhost;charset=utf8", "root", "");
+	$db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 	$selectsqls =$db->prepare("SELECT * FROM m_classroomform;");
 	$selectsqls->execute();
 	$selectsqls = $selectsqls->fetchAll(PDO::FETCH_ASSOC);
@@ -64,21 +65,22 @@
 	</tr>
 </table>
 </form>
-<form action="room.php" method="POST">
+<form id="newrecformid" name="newrecform" action="room.php" method="POST" onsubmit="return formCheck()">
 <?php
 //新規登録の処理
 	if(isset($_POST['newrec']))
 	{
 echo '<input type="radio" name="newsel" value="newclass" checked="checked">新規クラス作成<br>';
-echo'クラス名<input type="text" name="newclass" value="">例)1A、9D1<br>';
+echo'クラス名<input type="text" name="newclassinput" value="" onInput="checkForm(this)">例)1A、9D1<br>';
 echo '教室タイプ<select name="newroomtype">';
 foreach($selectsqls as $selectsql){
 	echo '<option value="';echo $selectsql['m_classroomform_name']; echo'">';echo $selectsql['m_classroomform_name'];echo"</option>";
 	}
 echo"</select><br>";
 echo '<input type="radio" name="newsel" value="newtype">新規教室タイプ作成<br>';
-echo'クラスタイプ名<input type="text" name="newclasstype" value=""><br>';
+echo'クラスタイプ名<input type="text" name="newclasstype" value="" onInput="checkForm2(this)"><br>';
 echo'<input type="submit" name="newrecsend" value="新規登録">';
+echo'<p id="notice-input-text-1" style="display: none; color: red;"></p>';
 }
 if(isset($_POST['newrecsend']))
 {
@@ -88,7 +90,7 @@ if(strcmp($_POST['newsel'], "newclass")==0){
 	$SELS->execute();
 	$SELS=$SELS->fetchAll(PDO::FETCH_ASSOC);
 	foreach ($SELS as $SEL) {
-	$INS=$db->prepare("INSERT INTO m_classroom (m_classroom_id,m_classroom_qrdate,m_classroomform_id) VALUES (\"".$_POST['newclass']."\",\"qr\",\"".$SEL['m_classroomform_id']."\")");
+	$INS=$db->prepare("INSERT INTO m_classroom (m_classroom_id,m_classroom_qrdate,m_classroomform_id) VALUES (\"".$_POST['newclassinput']."\",\"qr\",\"".$SEL['m_classroomform_id']."\")");
 				}
 }else{
 $roomformcount++;
@@ -198,6 +200,7 @@ $cnt=0;
 	}
 //データ更新処理
 	if(isset($_POST['UPD'])){
+try{
 if($_SESSION['num']<$_SESSION['count']){
 for($f=1; $f<=$_SESSION['num']; $f++){
 		$UPD = $db->prepare("UPDATE m_classroom SET m_classroomform_id = (SELECT m_classroomform_id FROM m_classroomform WHERE m_classroomform_name=\"".$_POST['roomadd'.$f]."\")WHERE m_classroom_id=\"".$_POST['classroomid'.$f]."\"");	
@@ -210,9 +213,81 @@ for($fe=1; $fe<=$_SESSION['count']; $fe++){
 		$UPD -> execute();
 }
 }
-//header('Location: room.php');
+?>
+    <script>
+      alert('更新正常終了');
+    </script>
+<?php
+}catch(PDOException $e){
+?>
+    <script>
+      alert('echo $e->getMessage()." - ".$e->getLine().PHP_EOL;');
+    </script>
+<?php
+
+
+}
+
 }
 ?>
 </form>
+<script type="text/javascript">
+var elems = document.getElementsByName("newsel");
+for(var i = 0; i <elems.length; i++){
+}
+function formCheck(){
+    var flag = 0;
+    var input_text_1_length = document.newrecform.newclassinput.value.length;
+    var input_text_2_length = document.newrecform.newclasstype.value.length;
+    if ( elems[0].checked==true&&input_text_1_length < 2 ){
+        flag = 1;
+        document . getElementById( 'notice-input-text-1' ) . innerHTML = "文字数不足です。";
+        document . getElementById( 'notice-input-text-1' ) . style . display = "block";
+    }
+    if ( elems[0].checked==true&&input_text_1_length  > 3 ){
+        flag = 1;
+        document . getElementById( 'notice-input-text-1' ) . innerHTML = "3文字以内でお願いします。";
+        document . getElementById( 'notice-input-text-1' ) . style . display = "block";
+    }
+    if ( elems[1].checked==true&&input_text_2_length < 1 ){
+        flag = 1;
+        document . getElementById( 'notice-input-text-1' ) . innerHTML = "教室タイプ名を入力してください。";
+        document . getElementById( 'notice-input-text-1' ) . style . display = "block";
+    }
+    if ( elems[1].checked==true&&input_text_2_length  > 30 ){
+        flag = 1;
+        document . getElementById( 'notice-input-text-1' ) . innerHTML = "30文字以内でお願いします。";
+        document . getElementById( 'notice-input-text-1' ) . style . display = "block";
+    }
+    if( flag ){
+        return false;
+    }else{
+        document . getElementById( 'notice-input-text-1' ) . style . display = "none";
+        return true;
+    }
+}
+//英数字のみ入力させる
+function checkForm($this)
+{
+    var str=$this.value;
+    while(str.match(/[^A-Z^a-z\d\-]/))
+    {
+        str=str.replace(/[^A-Z^a-z\d\-]/,"");
+    }
+    $this.value=str;
+}
+
+//サニタイジング(SQLi対策)
+function checkForm2($this)
+{
+    var str=$this.value;
+    while(str.match(/[!"#$%&'()*,\-.\/:;<>?@\[\\\]\^_`{|}~]/))
+    {
+        str=str.replace(/[!"#$%&'()*,\-.\/:;<>?@\[\\\]\^_`{|}~]/,"");
+    }
+    $this.value=str;
+}
+
+</script>
 </body>
 </html>
