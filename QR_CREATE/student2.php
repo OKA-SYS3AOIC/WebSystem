@@ -1,8 +1,99 @@
 <?php
+	session_start();
 	define('MAX','5');
 	$db = new PDO("mysql:dbname=testtable;host=localhost;charset=utf8", "root", "");
 	$db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-	$selectsqls =$db->prepare("SELECT * FROM m_student;");
+	$selectcourses =$db->prepare("SELECT * FROM m_course;");
+	$selectcourses->execute();
+	$selectcourses = $selectcourses->fetchAll(PDO::FETCH_ASSOC);
+
+?>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>QRコード発行</title>
+</head>
+<body>
+<form action="student2.php" method="POST">
+<table border="0">
+	<tr>
+		<tr>
+		<td><input type="submit" name="newrec" value="新規登録" disabled></td>
+		</tr>
+		<tr>
+		<td><input type="radio" name="radio" value="checkstuno" checked="checked">学籍番号<input type="text" name="inputstuno"></td>
+		</tr>
+		<tr>
+		<td><input type="radio" name="radio" value="checkstuname">生徒名<input type="text" name="inputstuname"></td>
+		</tr>
+		<tr>
+		<td><input type="radio" name="radio" value="checkstufc">入学年度・コース
+		<br>入学年度<input type="text" name="inputfirstyear">
+		<br>コース
+			<select name="course">
+				<option value="C000" selected>-----</option>
+		<?php
+			foreach($selectcourses as $selectcourse){
+		?>
+		<option value="<?php echo $selectcourse['m_course_id'];?>"><?php echo $selectcourse['m_course_name']; ?></option>
+		<?php
+			}
+		?>
+			</select>
+		</td>
+		</tr>
+		<tr>
+			<td>
+			<input type="submit" name="send" value="検索">
+			</td>
+		</tr>
+	</tr>
+</table>
+</form>
+<?php
+	if(isset($_POST['send'])||isset($_GET['page_id']))
+	{
+		if(isset($_POST['inputstuno'])){
+			$_SESSION['inputstuno'] = $_POST['inputstuno'];
+		}
+		if(isset($_POST['inputstuname'])){
+			$_SESSION['inputstuname'] = $_POST['inputstuname'];
+		}
+		if(isset($_POST['inputfirstyear'])){
+			$_SESSION['inputfirstyear'] = $_POST['inputfirstyear'];
+		}
+		if(isset($_POST['radio'])){
+			$_SESSION['radio'] = $_POST['radio'];
+		}
+		if(isset($_POST['course'])){
+			$_SESSION['course']=$_POST['course'];
+		}
+
+
+		if(strcmp($_SESSION['radio'], "checkstuno")==0){
+			if($_SESSION['inputstuno']!=null){
+			$selectsqls = $db->prepare("SELECT * FROM m_student LEFT JOIN m_course ON m_student.m_course_id = m_course.m_course_id WHERE m_student_id=\"".$_SESSION['inputstuno']."\"");
+			}else{
+			$selectsqls = $db->prepare("SELECT * FROM m_student LEFT JOIN m_course ON m_student.m_course_id = m_course.m_course_id");
+			}
+		}else if(strcmp($_SESSION['radio'], "checkstuname")==0){
+			if($_SESSION['inputstuname']!=null){
+			$selectsqls = $db->prepare("SELECT * FROM m_student LEFT JOIN m_course ON m_student.m_course_id = m_course.m_course_id WHERE m_student_name LIKE\"".$_SESSION['inputstuname']."%\"");
+			}else{
+			$selectsqls = $db->prepare("SELECT * FROM m_student LEFT JOIN m_course ON m_student.m_course_id = m_course.m_course_id");
+			}
+		}else if(strcmp($_SESSION['radio'], "checkstufc")==0){
+			if($_SESSION['inputfirstyear']!=NULL&&strcmp($_SESSION['course'], "C000")==0){
+			$selectsqls =$db->prepare("SELECT * FROM m_student LEFT JOIN m_course ON m_student.m_course_id = m_course.m_course_id where m_student.m_student_firstyear=\"".$_SESSION['inputfirstyear']."\"");
+			}else if($_SESSION['inputfirstyear']!=NULL&&strcmp($_SESSION['course'], "C000")!==0){
+			$selectsqls =$db->prepare("SELECT * FROM m_student LEFT JOIN m_course ON m_student.m_course_id = m_course.m_course_id where m_student.m_student_firstyear=\"".$_SESSION['inputfirstyear']."\"AND m_student.m_course_id=\"".$_SESSION['course']."\"");
+			}else if($_SESSION['inputfirstyear']==NULL&&strcmp($_SESSION['course'], "C000")!==0){
+			$selectsqls =$db->prepare("SELECT * FROM m_student LEFT JOIN m_course ON m_student.m_course_id = m_course.m_course_id where m_student.m_course_id=\"".$_SESSION['course']."\"");
+			}else if($_SESSION['inputfirstyear']==NULL&&strcmp($_SESSION['course'], "C000")==0){
+			$selectsqls = $db->prepare("SELECT * FROM m_student LEFT JOIN m_course ON m_student.m_course_id = m_course.m_course_id");
+			}
+		}
 	$selectsqls->execute();
 	$selectsqls = $selectsqls->fetchAll(PDO::FETCH_ASSOC);
 
@@ -21,13 +112,6 @@ $start_no = ($now - 1) * MAX; // 配列の何番目から取得すればよい�
 // array_sliceは、配列の何番目($start_no)から何番目(MAX)まで切り取る関数
 $disp_data = array_slice($selectsqls, $start_no, MAX, true);
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8" />
-<title>QRコード発行</title>
-</head>
-<body>
 <input type="button" value="印刷" onclick="window.print();" >
 <table border='1' class="tablestudent">
 <tr>
@@ -35,6 +119,7 @@ $disp_data = array_slice($selectsqls, $start_no, MAX, true);
 	<th>生徒氏名</th>
 	<th>入学年度</th>
 	<th>生年月日</th>
+	<th>コース</th>
 	<th>QRコード</th>
 </tr>
 <?php
@@ -47,6 +132,7 @@ $qr="";
 	<td><a href="stuqr.php?si=<?php echo $selectsql['m_student_id']?>"><?php echo $selectsql['m_student_name']; ?></a></td>
 	<td><?php echo $selectsql['m_student_firstyear']; ?></td>
 	<td><?php echo $selectsql['m_student_birthday']; ?></td>
+	<td><?php echo $selectsql['m_course_name']; ?></td>
 	<td class="qrimg"><img src="php/qr_img.php?d=<?php echo $qr; ?>"class="qrcode"></td>
 	</tr>
 <?php	
@@ -61,6 +147,8 @@ for($i = 1; $i <= $max_page; $i++){ // 最大ページ数分リンクを作成
     } else {
         echo '<a href=\'/student2.php?page_id='. $i. '\')>'. $i. '</a>'. '　';
     }
+}
+//処理終了
 }
 ?>
 </body>
